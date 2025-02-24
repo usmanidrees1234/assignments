@@ -101,3 +101,9 @@ Post-Retrieval Optimization Techniques
  -> Domain-Specific Dataset → Fine-tuned LLM
 
 ⚡ I recommend implementing a validation pipeline to identify which parts of your RAG system need optimization and to assess the effectiveness of advanced techniques. Evaluating your RAG pipeline enables continuous monitoring and refinement, ensuring that optimizations positively impact retrieval quality and model performance!
+
+
+### Commands: 
+uvicorn task_4_fastapp:app --reload
+docker run -p 6333:6333 qdrant/qdrant
+streamlit run task_4_app_streamlit.py
