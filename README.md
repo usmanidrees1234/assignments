@@ -105,5 +105,7 @@ Post-Retrieval Optimization Techniques
 
 ### Commands: 
 uvicorn task_4_fastapp:app --reload
+
 docker run -p 6333:6333 qdrant/qdrant
+
 streamlit run task_4_app_streamlit.py
