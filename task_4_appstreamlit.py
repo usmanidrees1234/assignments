@@ -1,48 +1,78 @@
 import streamlit as st
 import requests
-import time
+import os
 
-FASTAPI_URL = "http://127.0.0.1:8000/query"
-st.title("Document-based Chat using Naive RAG")
+# FastAPI backend URL
+FASTAPI_URL = "http://127.0.0.1:8000"  # Update if FastAPI runs on a different host
 
+# Create Streamlit UI
+st.set_page_config(page_title="PDF Chat Assistant", layout="wide")
 
-if 'history' not in st.session_state:
-    st.session_state.history = []
+# Sidebar: Chat History and File Upload
+st.sidebar.title("📁 Chat History & Uploads")
 
+# Create an area to store uploaded files
+if "uploaded_files" not in st.session_state:
+    st.session_state["uploaded_files"] = []
 
-user_query = st.text_input("Ask a question:")
-answer_placeholder = st.empty()
+# File Upload
+uploaded_file = st.sidebar.file_uploader("Upload a PDF", type=["pdf"])
+if uploaded_file:
+    file_path = os.path.join("temp", uploaded_file.name)
+    os.makedirs("temp", exist_ok=True)  # Ensure temp directory exists
+    
+    # Save file temporarily
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    
+    # Send file to FastAPI backend
+    with st.spinner("Uploading..."):
+        files = {"file": open(file_path, "rb")}
+        response = requests.post(f"{FASTAPI_URL}/upload/", files=files)
 
-def clean_answer(answer):
-    """ Clean and format the raw answer from the API """
-    cleaned_answer = answer.replace("<think>", "").replace("</think>", "").strip()
-    formatted_answer = cleaned_answer.replace("\n", "<br>")
-    formatted_answer = formatted_answer.replace("**Answer**:", "<strong>Answer:</strong>")
-    return formatted_answer
-
-if user_query:
-    st.session_state.history.append(f"**User**: {user_query}")
-
-    try:
-        response = requests.post(FASTAPI_URL, json={"query": user_query}, stream=True)
-        
         if response.status_code == 200:
-            answer = ''
-            for chunk in response.iter_content(chunk_size=1, decode_unicode=True):
-                if chunk:
-                    answer += chunk
-                    formatted_answer = clean_answer(answer)
-                    answer_placeholder.markdown(formatted_answer, unsafe_allow_html=True)
-                    time.sleep(0.05)  
-            st.session_state.history.append(f"**Answer**: {answer}")
+            st.session_state["uploaded_files"].append(uploaded_file.name)
+            st.sidebar.success(f"✅ {uploaded_file.name} uploaded successfully!")
         else:
-            error_message = response.json().get("detail", "Unknown error")
-            st.error(f"Error: {error_message}")
-            st.session_state.history.append(f"**Error**: {error_message}")
-    except Exception as e:
-        st.error(f"Error contacting the API: {e}")
-        st.session_state.history.append(f"**Error**: {e}")
+            st.sidebar.error("❌ Upload failed.")
 
-st.subheader("Conversation History")
-for entry in st.session_state.history:
-    st.markdown(entry)
+# Display uploaded files in sidebar
+if st.session_state["uploaded_files"]:
+    st.sidebar.subheader("Uploaded PDFs:")
+    for file_name in st.session_state["uploaded_files"]:
+        st.sidebar.text(f"📄 {file_name}")
+
+# Chat Interface
+st.title("💬 PDF Chat Assistant")
+st.write("Ask questions about your PDFs!")
+
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+
+# Display chat history
+for message in st.session_state["messages"]:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# User Input
+query = st.chat_input("Ask a question...")
+if query:
+    # Add user query to chat history
+    st.session_state["messages"].append({"role": "user", "content": query})
+    with st.chat_message("user"):
+        st.markdown(query)
+
+    # Send query to FastAPI for response
+    with st.spinner("Thinking..."):
+        response = requests.post(f"{FASTAPI_URL}/query/", json={"query": query})
+
+        if response.status_code == 200:
+            answer = response.json().get("answer", "No response received.")
+        else:
+            answer = "❌ Error processing query."
+
+    # Add AI response to chat history
+    st.session_state["messages"].append({"role": "assistant", "content": answer})
+    with st.chat_message("assistant"):
+        st.markdown(answer)
