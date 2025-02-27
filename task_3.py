@@ -49,6 +49,12 @@ for i, doc in enumerate(docs):
 
     vector = embedding if isinstance(embedding, list) else embedding.tolist()
 
+
+    print(f"Document {i} embedding:")
+    print(vector)
+    print("=" * 50)
+
+
     document_store[str(i)] = doc
 
     point = PointStruct(id=i, vector=vector)
@@ -115,24 +121,7 @@ except Exception as e:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+"""
 /* Output */
 /*
     (.venv) usmanidrees@Macbooks-MacBook-Pro-4.local /Users/usmanidrees 
@@ -205,3 +194,5 @@ Similarity Score: 0.7955605
   chain = LLMChain(llm=llama, prompt=prompt)
 /Users/usmanidrees/task3.py:109: LangChainDeprecationWarning: The method `Chain.run` was deprecated in langchain 0.1.0 and will be removed in 1.0. Use :meth:`~invoke` instead.
   response = chain.run(question=query_text, context=context) */
+"""
+
